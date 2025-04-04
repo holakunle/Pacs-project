@@ -1,0 +1,185 @@
+
+
+
+version: '3.7'
+
+services:
+
+  nginx:
+    image: orthancteam/orthanc-nginx:25.2.1
+    depends_on: [orthanc, orthanc-auth-service, orthanc-for-api, meddream-viewer, keycloak]
+    restart: unless-stopped
+#    ports: ["8080:80"]
+# if setting ENABLE_HTTPS: "true" env var, uncomment the following 4 lines and comment the line with 'ports: ["80:80"]'
+    ports: ["443:443"]
+    volumes:
+      - /home/main/Documents/prelive/sslkeys/crt.pem:/etc/nginx/tls/crt.pem
+      - /home/main/Documents/prelive/sslkeys/key.pem:/etc/nginx/tls/key.pem
+    environment:
+      ENABLE_ORTHANC: "true"
+      ENABLE_KEYCLOAK: "true"
+      ENABLE_OHIF: "true"
+      ENABLE_ORTHANC_TOKEN_SERVICE: "true"
+      ENABLE_HTTPS: "true"
+      ENABLE_MEDDREAM: "true"
+      ENABLE_WSI: "true"
+      ENABLE_ORTHANC_FOR_API: "true"
+
+  orthanc:
+    image: orthancteam/orthanc:25.2.0-full
+    volumes:
+      - orthanc-storage:/var/lib/orthanc/db
+      - /home/main/Documents/prelive/orthanc.json:/etc/orthanc/orthanc.json:ro
+      - /home/main/Documents/prelive/custom.css:/home/custom/custom.css
+      - /home/main/Documents/prelive/images/logo.png:/home/custom/logo.png
+      - /home/main/Documents/prelive/images/favicon.ico:/home/custom/favicon.ico
+      - /home/main/Documents/prelive/customupload.lua:/etc/share/orthanc/scripts/customupload.lua
+
+    depends_on: [orthanc-db]
+    ports: ["4242:4242", "8042:8042"]
+    restart: unless-stopped
+    environment:
+      STONE_WEB_VIEWER_PLUGIN_ENABLED: "true"
+      DICOM_WEB_PLUGIN_ENABLED: "true"
+      ORTHANC__POSTGRESQL__HOST: "orthanc-db"
+      ORTHANC__POSTGRESQL__ENABLE_INDEX: "true"
+      VERBOSE_ENABLED: "true"
+      VERBOSE_STARTUP: "true"
+      HOUSEKEEPER_PLUGIN_ENABLED: "true"
+      DELAYED_DELETION_PLUGIN_ENABLED: "true"
+      NEURO_PLUGIN_ENABLED: "true"
+      WSI_PLUGIN_ENABLED: "true"
+      CONNECTIVITY_CHECKS_PLUGIN_ENABLED: "true"
+      WORKLISTS_PLUGIN_ENABLED: "true"
+      TCIA_PLUGIN_ENABLED: "true"
+      ORTHANC__TCIA__URL: "https://192.168.132.5/orthanc/tcia/app/index.html"
+      VOLVIEW_PLUGIN_ENABLED: "true"
+      ORTHANC__PYTHON_VERBOSE: "true"
+      ORTHANC__PYTHON_PLUGIN_ENABLED: "true"
+      OSIMIS_WEB_VIEWER1_PLUGIN_ENABLED: "true"
+      ORTHANC__POSTGRESQL__INDEX_CONNECTIONS_COUNT: 10
+      ORTHANC__POSTGRESQL__TRANSACTION_MODE: "ReadCommitted"
+      ORTHANC__ORTHANC_EXPLORER_2__UI_OPTIONS__ENABLE_SHARES: "true"
+      ORTHANC__ORTHANC_EXPLORER_2__UI_OPTIONS__STUDY_LIST_SEARCH_MODE: "search-button"
+      ORTHANC__ORTHANC_EXPLORER_2__UI_OPTIONS__SHOW_SAME_PATIENT_STUDIES_FILTER: '["PatientBirthDate"]'
+
+  orthanc-auth-service:
+    image: orthancteam/orthanc-auth-service:25.2.1
+    depends_on: [keycloak, meddream-token-service]
+    # permissions can be customized in the permissions.json file
+    volumes:
+      - ./permissions.jsonc:/orthanc_auth_service/permissions.json
+    restart: unless-stopped
+    environment:
+      SECRET_KEY: "change-me-I-am-a-secret-key"
+      ENABLE_KEYCLOAK: "true"
+      PUBLIC_ORTHANC_ROOT: "https://192.168.132.5/orthanc/"
+      PUBLIC_LANDING_ROOT: "https://192.168.132.5/orthanc/ui/app/token-landing.html"
+      USERS: |
+        {
+          "share-user": "change-me"
+        }
+      MEDDREAM_TOKEN_SERVICE_URL: "http://meddream-token-service:8088/v3/generate"
+      PUBLIC_MEDDREAM_ROOT: "https://192.168.132.5/meddream/"
+      PUBLIC_OHIF_ROOT: "https://192.168.132.5/ohif/"
+
+  orthanc-db:
+    image: postgres:15
+    restart: unless-stopped
+    volumes: ["orthanc-db:/var/lib/postgresql/data"]
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: "trust"
+
+  keycloak:
+    image: orthancteam/orthanc-keycloak:25.2.1
+    depends_on: [keycloak-db]
+    restart: unless-stopped
+    volumes:
+      - /home/main/Documents/prelive/images/orthanc-bg.png:/opt/keycloak/themes/orthanc/login/resources/img/orthanc-bg.png
+      - /home/main/Documents/prelive/images/orthanc-logo.png:/opt/keycloak/themes/orthanc/login/resources/img/orthanc-logo.png
+      - /home/main/Documents/prelive/images/orthanc-logo-text.png:/opt/keycloak/themes/orthanc/login/resources/img/orthanc-logo-text.png
+      - /home/main/Documents/prelive/images/orthanc-logo-text-shadow.png:/opt/keycloak/themes/orthanc/login/resources/img/orthanc-logo-text-shadow.png
+    environment:
+      KEYCLOAK_ADMIN: "admin"
+      KEYCLOAK_ADMIN_PASSWORD: "password"
+      KC_DB: "postgres"
+      KC_DB_URL: "jdbc:postgresql://keycloak-db:5432/keycloak"
+      KC_DB_USERNAME: "keycloak"
+      KC_DB_PASSWORD: "keycloak"
+      KC_HOSTNAME_URL: "https://192.168.132.5/keycloak"
+      KC_HOSTNAME_ADMIN_URL: "https://192.168.132.5/keycloak"
+
+  keycloak-db:
+    image: postgres:15
+    restart: unless-stopped
+    volumes: ["keycloak-db:/var/lib/postgresql/data"]
+    environment:
+      POSTGRES_PASSWORD: "keycloak"
+      POSTGRES_USER: "keycloak"
+      POSTGRES_DB: "keycloak"
+
+  meddream-token-service:
+    image: orthancteam/meddream-token-service:25.2.1
+    restart: unless-stopped
+
+  ohif:
+    image: orthancteam/ohif-v3:24.12.1
+#  customize ohif configuration applied
+    volumes:
+      - ./ohif-v3.js:/usr/share/nginx/html/app-config.js
+#      - ./ohif-logo.svg:/usr/share/nginx/html/ohif-logo.svg:ro
+#      - ./ohif-logo-light.svg:/usr/share/nginx/html/ohif-logo-light.svg:ro
+    restart: unless-stopped
+
+  meddream-viewer:
+    image: orthancteam/meddream-viewer:25.2.1
+    restart: unless-stopped
+    depends_on:
+      - orthanc-for-api
+    environment:
+      integration: "study"
+      TOKEN_SERVICE_ADDRESS: "https://meddream-token-service:8088/v3/validate"
+      ORTHANC_BASE_URL: "https://orthanc-for-api:8042"
+      ORTHANC_USER: "meddream-user"
+      ORTHANC_PWD: "change-me"
+      ORTHANC_MEDDREAM_PYTHON_PLUGIN_ENABLED: "true"
+      MEDDREAM_ADMIN_PASSWORD: "demo"
+      MEDDREAM_PACS_CONFIG_TYPE: "Dicomweb"
+      ORTHANC_HOSTNAME: "orthanc-for-api"
+      ORTHANC_DICOM_PORT: 4242
+      ORTHANC_AET: "SERVERMAIN1"
+    volumes:
+      - meddream-license:/opt/meddream/license
+
+  # An orthanc dedicated for API accesses and also used by MedDream
+  orthanc-for-api:
+    image: orthancteam/orthanc:25.2.1-full
+    volumes:
+      - orthanc-storage:/var/lib/orthanc/db
+      - ./meddream-plugin.py:/scripts/meddream-plugin.py
+    depends_on: [orthanc-db]
+    restart: unless-stopped
+    environment:
+      ORTHANC__NAME: "Orthanc for API"
+      VERBOSE_ENABLED: "true"
+      VERBOSE_STARTUP: "true"
+      ORTHANC__PYTHON_SCRIPT: "/scripts/meddream-plugin.py"
+      ORTHANC__AUTHENTICATION_ENABLED: "true"
+      DICOM_WEB_PLUGIN_ENABLED: "true"
+      ORTHANC__DICOM_WEB__PUBLIC_ROOT: "/orthanc-api/dicom-web/"
+      ORTHANC__POSTGRESQL__HOST: "orthanc-db"
+      ORTHANC_JSON: |
+        {
+          "RegisteredUsers": {
+            "meddream-user": "change-me",
+            "script-user": "change-me",
+            "dicom-web-client-user": "change-me"
+          }
+        }
+
+
+volumes:
+  orthanc-storage:
+  orthanc-db:
+  keycloak-db:
+  meddream-license:

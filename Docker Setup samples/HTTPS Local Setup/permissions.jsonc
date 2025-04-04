@@ -1,0 +1,37 @@
+//This file contains permissions for various roles
+// permissions not included for this non admin roles includes
+// [delete, anonymize, settings, api-view, upload]
+
+
+{
+  "roles" : {
+    "admin-role": {
+      "permissions":["all"],
+      "authorized_labels": ["*"]
+    },
+    "doctor": {
+      "permissions":["q-r-remote-modalities", "view", "share", "send"],
+      "authorized_labels": ["*"]
+    },
+    "radiographer": {
+      "permissions":["q-r-remote-modalities", "edit-labels", "view", "send", "share"],
+      "authorized_labels": ["*"]
+    },
+    "external-role": {
+      "permissions":["view", "download"],
+      "authorized_labels": ["external"]
+    },
+    "pacs-admin": {
+      "permissions":["view", "edit-labels", "q-r-remote-modalities", "modify", "share", "download", "send"],
+      "authorized_labels": ["*"]
+    },
+    "scientific-officer": {
+      "permissions":["view", "send", "upload"],
+      "authorized_labels": ["non-invasive"]
+    },
+    "front-desk": {
+      "permissions":["view"],
+      "authorized_labels": ["external"]
+    }
+  }
+}
