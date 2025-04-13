@@ -1,0 +1,1810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical Imaging Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: #f0f2f5;
+            color: #333;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 250px;
+            background: #2c3e50;
+            color: white;
+            padding: 60px 20px 20px 20px;
+            height: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            transition: width 0.3s ease;
+            z-index: 1000;
+        }
+
+        .sidebar.minimized {
+            width: 60px;
+            padding: 50px 10px 10px 10px;
+        }
+
+        .toggle-sidebar-btn {
+            background: #2c3e50;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 0;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1001;
+            transition: background 0.3s ease, transform 0.3s ease;
+        }
+
+        .toggle-sidebar-btn:hover {
+            background: #34495e;
+            transform: none;
+        }
+
+        .sidebar.minimized .toggle-sidebar-btn {
+            top: 5px;
+            right: 5px;
+            padding: 8px;
+            width: 35px;
+            height: 35px;
+        }
+
+        .toggle-sidebar-btn i {
+            transition: color 0.3s ease;
+        }
+
+        .toggle-sidebar-btn:hover i {
+            color: #ffffff;
+        }
+
+        .profile {
+            display: flex;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .sidebar.minimized .profile {
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .profile-img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #ddd;
+            margin-right: 15px;
+            object-fit: cover;
+        }
+
+        .sidebar.minimized .profile-img {
+            margin-right: 0;
+            margin-bottom: 10px;
+        }
+
+        .profile-name {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .sidebar.minimized .profile-name {
+            display: none;
+        }
+
+        .menu-item {
+            padding: 15px 10px;
+            margin: 10px 0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
+
+        .sidebar.minimized .menu-item {
+            justify-content: center;
+            padding: 10px;
+            position: relative;
+        }
+
+        .menu-item:hover {
+            background: #34495e;
+        }
+
+        .menu-item.active {
+            background: #34495e;
+        }
+
+        .menu-item i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .sidebar.minimized .menu-item i {
+            margin-right: 0;
+        }
+
+        .menu-item span:not(.badge) {
+            flex: 1;
+        }
+
+        .sidebar.minimized .menu-item span:not(.badge) {
+            display: none;
+        }
+
+        .sidebar.minimized .menu-item:hover span:not(.badge) {
+            display: block;
+            position: absolute;
+            left: 70px;
+            background: #34495e;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            white-space: nowrap;
+            z-index: 1002;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .badge {
+            position: absolute;
+            right: 10px;
+            background: #e74c3c;
+            color: white;
+            border-radius: 12px;
+            padding: 2px 8px;
+            font-size: 12px;
+        }
+
+        .sidebar.minimized .badge {
+            right: 5px;
+            font-size: 10px;
+            padding: 1px 5px;
+            display: block;
+        }
+
+        .dropdown {
+            position: relative;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            left: 100%;
+            top: 0;
+            background: #34495e;
+            min-width: 160px;
+            border-radius: 8px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            z-index: 1;
+        }
+
+        .sidebar.minimized .dropdown-content {
+            left: 60px;
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 10px 15px;
+            color: white;
+            text-decoration: none;
+            display: block;
+        }
+
+        .dropdown-item:hover {
+            background: #3d566e;
+        }
+
+        .main-content {
+            margin-left: 250px;
+            padding: 40px;
+            width: calc(100% - 250px);
+            overflow-y: auto;
+            transition: margin-left 0.3s ease, width 0.3s ease;
+        }
+
+        .main-content.minimized {
+            margin-left: 60px;
+            width: calc(100% - 60px);
+        }
+
+        .welcome {
+            font-size: 28px;
+            margin-bottom: 30px;
+            color: #2c3e50;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+            min-width: 200px;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card i {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #3498db;
+        }
+
+        .card h3 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .recent-studies-section, .assignment-section, .settings-section, .search-section {
+            display: none;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+
+        .recent-studies-section.active, .assignment-section.active, .settings-section.active, .search-section.active {
+            display: block;
+        }
+
+        .recent-studies-list {
+            display: flex;
+            overflow-x: auto;
+            gap: 20px;
+            padding-bottom: 10px;
+        }
+
+        .recent-studies-list::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .recent-studies-list::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        .recent-studies-list::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        .study-item {
+            min-width: 340px;
+            padding: 20px;
+            border-radius: 15px;
+            background: linear-gradient(135deg, #ffffff, #e8eef3);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            border-left: 6px solid #1976d2;
+        }
+
+        .study-item:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .study-item.new {
+            border-left: 6px solid #e65100;
+            background: linear-gradient(135deg, #fff8e1, #ffe082);
+        }
+
+        .study-checkbox {
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        .study-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .study-name {
+            color: #1a237e;
+            font-weight: 700;
+            font-size: 18px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .study-name i {
+            margin-right: 10px;
+            color: #1976d2;
+            font-size: 20px;
+        }
+
+        .study-meta {
+            font-size: 14px;
+            color: #263238;
+            font-weight: 500;
+            line-height: 1.8;
+        }
+
+        .study-meta span {
+            display: block;
+        }
+
+        .study-meta strong {
+            color: #0d47a1;
+            font-weight: 600;
+        }
+
+        .study-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: 10px;
+        }
+
+        .status-icon {
+            font-size: 16px;
+            position: relative;
+        }
+
+        .status-icon[title]:hover::after {
+            content: attr(title);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 10;
+        }
+
+        .viewed {
+            color: #4caf50;
+        }
+
+        .not-viewed {
+            color: #888;
+        }
+
+        .worked {
+            color: #2196f3;
+        }
+
+        .not-worked {
+            color: #888;
+        }
+
+        .assign-form {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .assign-form select {
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            flex: 1;
+            background: white;
+        }
+
+        .action-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-size: 14px;
+        }
+
+        .action-btn:hover {
+            background: #2980b9;
+        }
+
+        .unassign-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .unassign-btn:hover {
+            background: #c0392b;
+        }
+
+        .settings-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-width: 500px;
+        }
+
+        .settings-form label {
+            font-weight: 500;
+            color: #2c3e50;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .settings-form input,
+        .settings-form select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 100%;
+        }
+
+        .settings-form .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .settings-form button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
+            flex: 1;
+        }
+
+        .settings-form button:hover {
+            background: #2980b9;
+        }
+
+        .settings-form .test-btn {
+            background: #f1c40f;
+        }
+
+        .settings-form .test-btn:hover {
+            background: #e0b00d;
+        }
+
+        .connection-status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .connection-success {
+            background: #4caf50;
+            color: white;
+        }
+
+        .connection-failure {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+        }
+
+        .metadata-modal,
+        .share-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            z-index: 1000;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .metadata-modal.active,
+        .share-modal.active {
+            display: block;
+        }
+
+        .metadata-modal h3,
+        .share-modal h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+            font-size: 20px;
+        }
+
+        .metadata-modal p {
+            margin: 5px 0;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .close-modal {
+            position: absolute;
+            right: 15px;
+            top: 15px;
+            cursor: pointer;
+            font-size: 20px;
+            color: #666;
+            background: none;
+            border: none;
+        }
+
+        .close-modal:hover {
+            color: #333;
+        }
+
+        .settings-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .settings-tabs button {
+            background: none;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            color: #2c3e50;
+            cursor: pointer;
+            transition: color 0.3s, border-bottom 0.3s;
+        }
+
+        .settings-tabs button.active {
+            color: #3498db;
+            border-bottom: 2px solid #3498db;
+        }
+
+        .settings-tabs button:hover {
+            color: #2980b9;
+        }
+
+        .settings-tab-content {
+            display: none;
+        }
+
+        .settings-tab-content.active {
+            display: block;
+        }
+
+        .settings-tab-content .form-group {
+            margin-bottom: 15px;
+        }
+
+        .settings-tab-content .form-group label {
+            margin-bottom: 5px;
+        }
+
+        .settings-tab-content .form-group input,
+        .settings-tab-content .form-group select {
+            width: 100%;
+        }
+
+        .share-modal .share-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .share-modal .share-tabs button {
+            background: none;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            color: #2c3e50;
+            cursor: pointer;
+            transition: color 0.3s, border-bottom 0.3s;
+        }
+
+        .share-modal .share-tabs button.active {
+            color: #3498db;
+            border-bottom: 2px solid #3498db;
+        }
+
+        .share-modal .share-tabs button:hover {
+            color: #2980b9;
+        }
+
+        .share-modal .share-tab-content {
+            display: none;
+        }
+
+        .share-modal .share-tab-content.active {
+            display: block;
+        }
+
+        .share-modal .form-group {
+            margin-bottom: 15px;
+        }
+
+        .share-modal .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #2c3e50;
+        }
+
+        .share-modal .form-group input,
+        .share-modal .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .share-modal .action-btn {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .search-section .search-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .search-section .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .search-section .form-group label {
+            font-weight: 500;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .search-section .form-group input,
+        .search-section .form-group select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .search-section .button-group {
+            grid-column: 1 / -1;
+            display: flex;
+            gap: 10px;
+        }
+
+        .search-results {
+            margin-top: 20px;
+        }
+
+        .search-results h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar" id="sidebar">
+        <button class="toggle-sidebar-btn" onclick="toggleSidebar()">
+            <i class="fas fa-bars"></i>
+        </button>
+        <div class="profile">
+            <img src="./Guests/profile-placeholder.jpg" alt="Profile" class="profile-img" id="profilePic">
+            <span class="profile-name" id="userName">User Name</span>
+        </div>
+        <div class="menu-item" onclick="window.location.href='/middle-page/html/email.html?section=inbox'">
+            <i class="fas fa-envelope"></i> <span>Mails</span>
+            <span class="badge" id="mailCount">5</span>
+        </div>
+        <div class="menu-item" onclick="toggleRecentStudies()">
+            <i class="fas fa-clock"></i> <span>Recent Studies</span>
+            <span class="badge" id="recentCount">0</span>
+        </div>
+        <div class="menu-item" onclick="toggleAssignmentSection()">
+            <i class="fas fa-tasks"></i> <span>Assigned Studies</span>
+            <span class="badge" id="assignedCount">2</span>
+        </div>
+        <div class="menu-item" onclick="window.location.href='/orthanc/ui/app/index.html'">
+            <i class="fas fa-database"></i> <span>View Entire Database</span>
+        </div>
+        <div class="menu-item" onclick="toggleSearchSection()">
+            <i class="fas fa-search"></i> <span>Search Studies</span>
+        </div>
+        <div class="menu-item dropdown">
+            <i class="fas fa-share-alt"></i> <span>Share</span>
+            <div class="dropdown-content">
+                <a href="#" class="dropdown-item" onclick="showShareModal('pacs')">Send to PACS</a>
+                <a href="#" class="dropdown-item" onclick="showShareModal('email')">Share as Email</a>
+                <a href="#" class="dropdown-item" onclick="showShareModal('local')">Share Locally</a>
+            </div>
+        </div>
+        <div class="menu-item">
+            <i class="fas fa-file-alt"></i> <span>Create a Report</span>
+        </div>
+        <div class="menu-item">
+            <i class="fas fa-chart-bar"></i> <span>View Statistics</span>
+        </div>
+        <div class="menu-item">
+            <i class="fas fa-robot"></i> <span>Ask AI</span>
+        </div>
+        <div class="menu-item" onclick="toggleSettingsSection()">
+            <i class="fas fa-cog"></i> <span>Settings</span>
+        </div>
+        <div class="menu-item" onclick="logout()">
+            <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
+        </div>
+    </div>
+
+    <div class="main-content" id="mainContent">
+        <div class="welcome" id="welcomeMessage"></div>
+        <div class="dashboard-grid">
+            <div class="card">
+                <i class="fas fa-clock"></i>
+                <h3>Recent Studies</h3>
+                <p>View your recently uploaded studies</p>
+            </div>
+            <div class="card">
+                <i class="fas fa-tasks"></i>
+                <h3>Assigned Studies</h3>
+                <p>Check studies assigned to you</p>
+            </div>
+            <div class="card">
+                <i class="fas fa-database"></i>
+                <h3>Database</h3>
+                <p>Access the full study database</p>
+            </div>
+        </div>
+        <div class="recent-studies-section" id="recentStudiesSection">
+            <h3>Recent Studies</h3>
+            <button class="action-btn" onclick="showShareModal()" style="margin-bottom: 10px;">Share Selected</button>
+            <div class="recent-studies-list" id="recentStudiesList"></div>
+        </div>
+        <div class="assignment-section" id="assignmentSection">
+            <h3>Assign Recent Studies</h3>
+            <div id="recentStudiesList">
+                <div class="study-item unassigned">
+                    <span class="study-name">X-Ray - Patient A</span>
+                    <div class="assign-form">
+                        <label for="assign-X-Ray-Patient-A" class="visually-hidden">Assign X-Ray - Patient A to user</label>
+                        <select id="assign-X-Ray-Patient-A" onchange="assignStudy('X-Ray - Patient A', this.value)">
+                            <option value="">Select User</option>
+                            <option value="Dr. Lee">Dr. Lee</option>
+                            <option value="Dr. Patel">Dr. Patel</option>
+                            <option value="Dr. Johnson">Dr. Johnson</option>
+                            <option value="Nurse Sarah">Nurse Sarah</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="study-item unassigned">
+                    <span class="study-name">MRI - Patient B</span>
+                    <div class="assign-form">
+                        <label for="assign-MRI-Patient-B" class="visually-hidden">Assign MRI - Patient B to user</label>
+                        <select id="assign-MRI-Patient-B" onchange="assignStudy('MRI - Patient B', this.value)">
+                            <option value="">Select User</option>
+                            <option value="Dr. Lee">Dr. Lee</option>
+                            <option value="Dr. Patel">Dr. Patel</option>
+                            <option value="Dr. Johnson">Dr. Johnson</option>
+                            <option value="Nurse Sarah">Nurse Sarah</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="study-item unassigned">
+                    <span class="study-name">CT - Patient C</span>
+                    <div class="assign-form">
+                        <label for="assign-CT-Patient-C" class="visually-hidden">Assign CT - Patient C to user</label>
+                        <select id="assign-CT-Patient-C" onchange="assignStudy('CT - Patient C', this.value)">
+                            <option value="">Select User</option>
+                            <option value="Dr. Lee">Dr. Lee</option>
+                            <option value="Dr. Patel">Dr. Patel</option>
+                            <option value="Dr. Johnson">Dr. Johnson</option>
+                            <option value="Nurse Sarah">Nurse Sarah</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <h3>Assigned Studies</h3>
+            <div id="assignedStudiesList">
+                <div class="study-item assigned" data-study="MRI - Patient D" data-assigned-to="Dr. Lee">
+                    <div class="study-details">
+                        <span class="study-name" onclick="markViewed('MRI - Patient D')">MRI - Patient D (Assigned to Dr. Lee)</span>
+                        <span class="study-meta">Assigned by Dr. Smith on Apr 5, 2025 09:15</span>
+                    </div>
+                    <div class="study-status">
+                        <i class="fas fa-eye status-icon not-viewed" title="Viewed by assigned doctor"></i>
+                        <i class="fas fa-check status-icon not-worked" title="Worked on by assigned doctor"></i>
+                    </div>
+                    <button class="action-btn" onclick="markWorked('MRI - Patient D')">Mark as Worked</button>
+                    <button class="unassign-btn" onclick="unassignStudy('MRI - Patient D')">Unassign</button>
+                </div>
+                <div class="study-item assigned" data-study="CT - Patient E" data-assigned-to="Dr. Patel">
+                    <div class="study-details">
+                        <span class="study-name" onclick="markViewed('CT - Patient E')">CT - Patient E (Assigned to Dr. Patel)</span>
+                        <span class="study-meta">Assigned by Dr. Smith on Apr 5, 2025 14:30</span>
+                    </div>
+                    <div class="study-status">
+                        <i class="fas fa-eye status-icon not-viewed" title="Viewed by assigned doctor"></i>
+                        <i class="fas fa-check status-icon not-worked" title="Worked on by assigned doctor"></i>
+                    </div>
+                    <button class="action-btn" onclick="markWorked('CT - Patient E')">Mark as Worked</button>
+                    <button class="unassign-btn" onclick="unassignStudy('CT - Patient E')">Unassign</button>
+                </div>
+            </div>
+        </div>
+        <div class="search-section" id="searchSection">
+            <h3>Search Studies</h3>
+            <form class="search-form" id="searchForm">
+                <div class="form-group">
+                    <label for="searchPatientName">Patient Name</label>
+                    <input type="text" id="searchPatientName" placeholder="e.g., John Doe">
+                </div>
+                <div class="form-group">
+                    <label for="searchPatientID">Patient ID</label>
+                    <input type="text" id="searchPatientID" placeholder="e.g., P12345">
+                </div>
+                <div class="form-group">
+                    <label for="searchStudyDateFrom">Study Date (From)</label>
+                    <input type="date" id="searchStudyDateFrom">
+                </div>
+                <div class="form-group">
+                    <label for="searchStudyDateTo">Study Date (To)</label>
+                    <input type="date" id="searchStudyDateTo">
+                </div>
+                <div class="form-group">
+                    <label for="searchModality">Modality</label>
+                    <select id="searchModality">
+                        <option value="">Any</option>
+                        <option value="CT">CT</option>
+                        <option value="MRI">MRI</option>
+                        <option value="CR">CR</option>
+                        <option value="DX">DX</option>
+                        <option value="US">US</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="searchStudyDescription">Study Description</label>
+                    <input type="text" id="searchStudyDescription" placeholder="e.g., Chest CT">
+                </div>
+                <div class="form-group">
+                    <label for="searchAccessionNumber">Accession Number</label>
+                    <input type="text" id="searchAccessionNumber" placeholder="e.g., A123456">
+                </div>
+                <div class="form-group">
+                    <label for="searchReferringPhysician">Referring Physician</label>
+                    <input type="text" id="searchReferringPhysician" placeholder="e.g., Dr. Smith">
+                </div>
+                <div class="form-group">
+                    <label for="searchStudyStatus">Study Status</label>
+                    <select id="searchStudyStatus">
+                        <option value="">Any</option>
+                        <option value="New">New</option>
+                        <option value="Reviewed">Reviewed</option>
+                        <option value="Reported">Reported</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="searchLabels">Labels</label>
+                    <input type="text" id="searchLabels" placeholder="e.g., Urgent, Follow-Up">
+                </div>
+                <div class="button-group">
+                    <button type="submit" class="action-btn">Search</button>
+                    <button type="button" class="action-btn" onclick="resetSearch()">Reset</button>
+                </div>
+            </form>
+            <div class="search-results" id="searchResults">
+                <h3>Search Results</h3>
+                <div class="recent-studies-list" id="searchResultsList"></div>
+            </div>
+        </div>
+        <div class="settings-section" id="settingsSection">
+            <h3>Settings</h3>
+            <div class="settings-tabs">
+                <button class="tab-btn active" data-tab="orthanc">Orthanc Setup</button>
+                <button class="tab-btn" data-tab="pacs">PACS Setup</button>
+                <button class="tab-btn" data-tab="email">Email Setup</button>
+                <button class="tab-btn" data-tab="sharing">Sharing Setup</button>
+                <button class="tab-btn" data-tab="security">Security Setup</button>
+            </div>
+            <form class="settings-form" id="settingsForm">
+                <div class="settings-tab-content active" id="orthanc">
+                    <div class="form-group">
+                        <label for="orthancUrl">Orthanc URL</label>
+                        <input type="url" id="orthancUrl" placeholder="e.g., http://localhost:8042" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="orthancUsername">Username</label>
+                        <input type="text" id="orthancUsername" placeholder="e.g., admin" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="orthancPassword">Password</label>
+                        <input type="password" id="orthancPassword" placeholder="e.g., password" required>
+                    </div>
+                    <div class="button-group">
+                        <button type="button" class="test-btn" onclick="testOrthancConnection()">Test Orthanc Connection</button>
+                    </div>
+                    <div id="orthancStatus" class="connection-status"></div>
+                </div>
+                <div class="settings-tab-content" id="pacs">
+                    <div class="form-group">
+                        <label for="pacsAETitle">PACS AE Title</label>
+                        <input type="text" id="pacsAETitle" placeholder="e.g., PACS_SERVER">
+                    </div>
+                    <div class="form-group">
+                        <label for="pacsIP">PACS IP Address</label>
+                        <input type="text" id="pacsIP" placeholder="e.g., 192.168.1.100">
+                    </div>
+                    <div class="form-group">
+                        <label for="pacsPort">PACS Port</label>
+                        <input type="number" id="pacsPort" placeholder="e.g., 4242">
+                    </div>
+                    <div class="form-group">
+                        <label for="pacsProtocol">Retrieve Protocol</label>
+                        <select id="pacsProtocol">
+                            <option value="C-MOVE">C-MOVE</option>
+                            <option value="C-GET">C-GET</option>
+                        </select>
+                    </div>
+                    <div class="button-group">
+                        <button type="button" class="test-btn" onclick="testPacsConnection()">Test PACS Connection</button>
+                    </div>
+                    <div id="pacsStatus" class="connection-status"></div>
+                </div>
+                <div class="settings-tab-content" id="email">
+                    <div class="form-group">
+                        <label for="emailSmtpServer">SMTP Server</label>
+                        <input type="text" id="emailSmtpServer" placeholder="e.g., smtp.gmail.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="emailSmtpPort">SMTP Port</label>
+                        <input type="number" id="emailSmtpPort" placeholder="e.g., 587">
+                    </div>
+                    <div class="form-group">
+                        <label for="emailUsername">Email Username</label>
+                        <input type="text" id="emailUsername" placeholder="e.g., user@domain.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="emailPassword">Email Password</label>
+                        <input type="password" id="emailPassword" placeholder="Enter email password">
+                    </div>
+                    <div class="form-group">
+                        <label for="emailEncryption">Encryption</label>
+                        <select id="emailEncryption">
+                            <option value="TLS">TLS</option>
+                            <option value="SSL">SSL</option>
+                            <option value="None">None</option>
+                        </select>
+                    </div>
+                    <div class="button-group">
+                        <button type="button" class="test-btn" onclick="testEmailConnection()">Test Email Connection</button>
+                    </div>
+                    <div id="emailStatus" class="connection-status"></div>
+                </div>
+                <div class="settings-tab-content" id="sharing">
+                    <div class="form-group">
+                        <label for="localSharePath">Local Share Directory</label>
+                        <input type="text" id="localSharePath" placeholder="e.g., /shared/studies">
+                    </div>
+                    <div class="form-group">
+                        <label for="localShareMethod">Share Method</label>
+                        <select id="localShareMethod">
+                            <option value="file">File Copy</option>
+                            <option value="network">Network Share</option>
+                        </select>
+                    </div>
+                    <div class="button-group">
+                        <button type="button" class="test-btn" onclick="testSharingConnection()">Test Sharing Path</button>
+                    </div>
+                    <div id="sharingStatus" class="connection-status"></div>
+                </div>
+                <div class="settings-tab-content" id="security">
+                    <div class="form-group">
+                        <label for="enableEncryption">Enable Data Encryption</label>
+                        <select id="enableEncryption">
+                            <option value="true">Yes</option>
+                            <option value="false">No</option>
+                        </select>
+                    </div>
+                    <div id="securityStatus" class="connection-status"></div>
+                </div>
+                <div class="button-group">
+                    <button type="submit">Save All Settings</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="metadata-modal" id="metadataModal">
+        <span class="close-modal" onclick="closeMetadataModal()">×</span>
+        <h3>Study Metadata</h3>
+        <div id="studyMetadata"></div>
+    </div>
+
+    <div class="share-modal" id="shareModal">
+        <span class="close-modal" onclick="closeShareModal()">×</span>
+        <h3>Share Selected Studies</h3>
+        <div class="share-tabs">
+            <button class="share-tab-btn active" data-tab="pacs">PACS</button>
+            <button class="share-tab-btn" data-tab="email">Email</button>
+            <button class="share-tab-btn" data-tab="local">Local</button>
+        </div>
+        <div class="share-tab-content active" id="share-pacs">
+            <div class="form-group">
+                <label for="sharePacsAETitle">PACS AE Title</label>
+                <input type="text" id="sharePacsAETitle" placeholder="e.g., PACS_SERVER">
+            </div>
+            <div class="form-group">
+                <label for="sharePacsIP">PACS IP Address</label>
+                <input type="text" id="sharePacsIP" placeholder="e.g., 192.168.1.100">
+            </div>
+            <div class="form-group">
+                <label for="sharePacsPort">PACS Port</label>
+                <input type="number" id="sharePacsPort" placeholder="e.g., 4242">
+            </div>
+            <div class="form-group">
+                <label for="sharePacsProtocol">Retrieve Protocol</label>
+                <select id="sharePacsProtocol">
+                    <option value="C-MOVE">C-MOVE</option>
+                    <option value="C-GET">C-GET</option>
+                </select>
+            </div>
+            <button class="action-btn" onclick="sendToPacs()">Send to PACS</button>
+        </div>
+        <div class="share-tab-content" id="share-email">
+            <div class="form-group">
+                <label for="shareEmailRecipient">Recipient Email</label>
+                <input type="email" id="shareEmailRecipient" placeholder="e.g., patient@domain.com">
+            </div>
+            <button class="action-btn" onclick="shareViaEmail()">Share as Email</button>
+        </div>
+        <div class="share-tab-content" id="share-local">
+            <div class="form-group">
+                <label for="shareLocalPath">Local Share Directory</label>
+                <input type="text" id="shareLocalPath" placeholder="e.g., /shared/studies">
+            </div>
+            <div class="form-group">
+                <label for="shareLocalMethod">Share Method</label>
+                <select id="shareLocalMethod">
+                    <option value="file">File Copy</option>
+                    <option value="network">Network Share</option>
+                </select>
+            </div>
+            <button class="action-btn" onclick="shareLocally()">Share Locally</button>
+        </div>
+    </div>
+
+    <script>
+        let selectedStudies = new Set();
+
+        function getGreeting() {
+            const hour = new Date().getHours();
+            if (hour < 12) return "Good Morning";
+            if (hour < 17) return "Good Afternoon";
+            return "Good Evening";
+        }
+
+        const currentUser = "Dr. Lee";
+        document.getElementById("welcomeMessage").textContent = `${getGreeting()}, ${currentUser}`;
+        document.getElementById("userName").textContent = currentUser;
+
+        const profilePicUrl = "./Guests/profile-placeholder.jpg";
+        document.getElementById("profilePic").src = profilePicUrl;
+
+        function updateMailCount() {
+            const mailCount = 5;
+            document.getElementById("mailCount").textContent = mailCount;
+        }
+
+        function updateRecentStudies(count) {
+            document.getElementById("recentCount").textContent = count;
+        }
+
+        function updateAssignedStudies() {
+            const assignedCount = document.getElementById("assignedStudiesList").children.length;
+            document.getElementById("assignedCount").textContent = assignedCount;
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById("sidebar");
+            const mainContent = document.getElementById("mainContent");
+            sidebar.classList.toggle("minimized");
+            mainContent.classList.toggle("minimized");
+        }
+
+        function logout() {
+            const keycloakLogoutUrl = 'https://192.168.132.5/keycloak/realms/master/protocol/openid-connect/logout';
+            const redirectUri = 'https://192.168.132.5/';
+            window.location.href = `${keycloakLogoutUrl}?redirect_uri=${encodeURIComponent(redirectUri)}`;
+        }
+
+        function toggleRecentStudies() {
+            const section = document.getElementById("recentStudiesSection");
+            const assignmentSection = document.getElementById("assignmentSection");
+            const settingsSection = document.getElementById("settingsSection");
+            const searchSection = document.getElementById("searchSection");
+            section.classList.toggle("active");
+            if (section.classList.contains("active")) {
+                document.querySelector(".menu-item:nth-child(3)").classList.add("active");
+                assignmentSection.classList.remove("active");
+                settingsSection.classList.remove("active");
+                searchSection.classList.remove("active");
+                document.querySelector(".menu-item:nth-child(4)").classList.remove("active");
+                document.querySelector(".menu-item:nth-child(6)").classList.remove("active");
+                document.querySelector(".menu-item:nth-child(11)").classList.remove("active");
+                fetchRecentStudies();
+            } else {
+                document.querySelector(".menu-item:nth-child(3)").classList.remove("active");
+            }
+        }
+
+        function toggleAssignmentSection() {
+            const section = document.getElementById("assignmentSection");
+            const recentSection = document.getElementById("recentStudiesSection");
+            const settingsSection = document.getElementById("settingsSection");
+            const searchSection = document.getElementById("searchSection");
+            section.classList.toggle("active");
+            if (section.classList.contains("active")) {
+                document.querySelector(".menu-item:nth-child(4)").classList.add("active");
+                recentSection.classList.remove("active");
+                settingsSection.classList.remove("active");
+                searchSection.classList.remove("active");
+                document.querySelector(".menu-item:nth-child(3)").classList.remove("active");
+                document.querySelector(".menu-item:nth-child(6)").classList.remove("active");
+                document.querySelector(".menu-item:nth-child(11)").classList.remove("active");
+            } else {
+                document.querySelector(".menu-item:nth-child(4)").classList.remove("active");
+            }
+        }
+
+        function toggleSearchSection() {
+            const section = document.getElementById("searchSection");
+            const recentSection = document.getElementById("recentStudiesSection");
+            const assignmentSection = document.getElementById("assignmentSection");
+            const settingsSection = document.getElementById("settingsSection");
+            section.classList.toggle("active");
+            if (section.classList.contains("active")) {
+                document.querySelector(".menu-item:nth-child(6)").classList.add("active");
+                recentSection.classList.remove("active");
+                assignmentSection.classList.remove("active");
+                settingsSection.classList.remove("active");
+                document.querySelector(".menu-item:nth-child(3)").classList.remove("active");
+                document.querySelector(".menu-item:nth-child(4)").classList.remove("active");
+                document.querySelector(".menu-item:nth-child(11)").classList.remove("active");
+                resetSearch();
+            } else {
+                document.querySelector(".menu-item:nth-child(6)").classList.remove("active");
+            }
+        }
+
+        function toggleSettingsSection() {
+            const section = document.getElementById("settingsSection");
+            const recentSection = document.getElementById("recentStudiesSection");
+            const assignmentSection = document.getElementById("assignmentSection");
+            const searchSection = document.getElementById("searchSection");
+            section.classList.toggle("active");
+            if (section.classList.contains("active")) {
+                document.querySelector(".menu-item:nth-child(11)").classList.add("active");
+                recentSection.classList.remove("active");
+                assignmentSection.classList.remove("active");
+                searchSection.classList.remove("active");
+                document.querySelector(".menu-item:nth-child(3)").classList.remove("active");
+                document.querySelector(".menu-item:nth-child(4)").classList.remove("active");
+                document.querySelector(".menu-item:nth-child(6)").classList.remove("active");
+                loadSettings();
+            } else {
+                document.querySelector(".menu-item:nth-child(11)").classList.remove("active");
+            }
+        }
+
+        function showShareModal(tab) {
+            if (selectedStudies.size === 0) {
+                alert("No studies selected for sharing.");
+                return;
+            }
+            const modal = document.getElementById("shareModal");
+            const tabs = document.querySelectorAll(".share-modal .share-tab-btn");
+            const contents = document.querySelectorAll(".share-modal .share-tab-content");
+
+            tabs.forEach(t => t.classList.remove("active"));
+            contents.forEach(c => c.classList.remove("active"));
+
+            const targetTab = tab || "pacs";
+            document.querySelector(`.share-tab-btn[data-tab="${targetTab}"]`).classList.add("active");
+            document.getElementById(`share-${targetTab}`).classList.add("active");
+
+            const settings = JSON.parse(localStorage.getItem("settings")) || {};
+            document.getElementById("sharePacsAETitle").value = settings.pacsAETitle || "";
+            document.getElementById("sharePacsIP").value = settings.pacsIP || "";
+            document.getElementById("sharePacsPort").value = settings.pacsPort || "";
+            document.getElementById("sharePacsProtocol").value = settings.pacsProtocol || "C-MOVE";
+            document.getElementById("shareLocalPath").value = settings.localSharePath || "";
+            document.getElementById("shareLocalMethod").value = settings.localShareMethod || "file";
+
+            modal.classList.add("active");
+        }
+
+        function closeShareModal() {
+            document.getElementById("shareModal").classList.remove("active");
+        }
+
+        async function sendToPacs() {
+            const aetitle = document.getElementById("sharePacsAETitle").value;
+            const ip = document.getElementById("sharePacsIP").value;
+            const port = document.getElementById("sharePacsPort").value;
+            const protocol = document.getElementById("sharePacsProtocol").value;
+
+            if (!aetitle || !ip || !port) {
+                alert("Please provide all PACS settings.");
+                return;
+            }
+
+            const settings = JSON.parse(localStorage.getItem("settings"));
+            if (!settings || !settings.orthancUsername || !settings.orthancPassword) {
+                alert("Please configure Orthanc settings first.");
+                toggleSettingsSection();
+                return;
+            }
+
+            try {
+                for (let studyId of selectedStudies) {
+                    const response = await fetch(`/orthanc/studies/${studyId}/send`, {
+                        method: 'POST',
+                        headers: {
+                            "Accept": "application/json",
+                            "Authorization": "Basic " + btoa(`${settings.orthancUsername}:${settings.orthancPassword}`),
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            method: "pacs",
+                            aetitle,
+                            ip,
+                            port,
+                            protocol
+                        })
+                    });
+                    if (!response.ok) throw new Error(`Failed to send study ${studyId}: HTTP ${response.status}`);
+                }
+                alert(`Successfully sent ${selectedStudies.size} studies to PACS.`);
+                selectedStudies.clear();
+                document.querySelectorAll(".study-checkbox").forEach(checkbox => checkbox.checked = false);
+                closeShareModal();
+            } catch (error) {
+                console.error("Send to PACS error:", error);
+                alert("Failed to send studies to PACS. Check settings and connection.");
+            }
+        }
+
+        async function shareViaEmail() {
+            const recipient = document.getElementById("shareEmailRecipient").value;
+            if (!recipient) {
+                alert("Please provide a recipient email address.");
+                return;
+            }
+
+            const settings = JSON.parse(localStorage.getItem("settings"));
+            if (!settings || !settings.orthancUsername || !settings.orthancPassword ||
+                !settings.emailSmtpServer || !settings.emailSmtpPort || !settings.emailUsername || !settings.emailPassword) {
+                alert("Please configure email and Orthanc settings first.");
+                toggleSettingsSection();
+                return;
+            }
+
+            try {
+                for (let studyId of selectedStudies) {
+                    const response = await fetch(`/orthanc/studies/${studyId}/share`, {
+                        method: 'POST',
+                        headers: {
+                            "Accept": "application/json",
+                            "Authorization": "Basic " + btoa(`${settings.orthancUsername}:${settings.orthancPassword}`),
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            method: "email",
+                            smtpServer: settings.emailSmtpServer,
+                            smtpPort: settings.emailSmtpPort,
+                            username: settings.emailUsername,
+                            password: settings.emailPassword,
+                            encryption: settings.emailEncryption,
+                            recipient
+                        })
+                    });
+                    if (!response.ok) throw new Error(`Failed to share study ${studyId}: HTTP ${response.status}`);
+                }
+                alert(`Successfully shared ${selectedStudies.size} studies via email to ${recipient}.`);
+                selectedStudies.clear();
+                document.querySelectorAll(".study-checkbox").forEach(checkbox => checkbox.checked = false);
+                closeShareModal();
+            } catch (error) {
+                console.error("Share via email error:", error);
+                alert("Failed to share studies via email. Check settings and connection.");
+            }
+        }
+
+        async function shareLocally() {
+            const path = document.getElementById("shareLocalPath").value;
+            const shareMethod = document.getElementById("shareLocalMethod").value;
+
+            if (!path) {
+                alert("Please provide a local share directory.");
+                return;
+            }
+
+            const settings = JSON.parse(localStorage.getItem("settings"));
+            if (!settings || !settings.orthancUsername || !settings.orthancPassword) {
+                alert("Please configure Orthanc settings first.");
+                toggleSettingsSection();
+                return;
+            }
+
+            try {
+                for (let studyId of selectedStudies) {
+                    const response = await fetch(`/orthanc/studies/${studyId}/share`, {
+                        method: 'POST',
+                        headers: {
+                            "Accept": "application/json",
+                            "Authorization": "Basic " + btoa(`${settings.orthancUsername}:${settings.orthancPassword}`),
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            method: "local",
+                            path,
+                            shareMethod
+                        })
+                    });
+                    if (!response.ok) throw new Error(`Failed to share study ${studyId}: HTTP ${response.status}`);
+                }
+                alert(`Successfully shared ${selectedStudies.size} studies locally to ${path}.`);
+                selectedStudies.clear();
+                document.querySelectorAll(".study-checkbox").forEach(checkbox => checkbox.checked = false);
+                closeShareModal();
+            } catch (error) {
+                console.error("Share locally error:", error);
+                alert("Failed to share studies locally. Check settings and connection.");
+            }
+        }
+
+        function resetSearch() {
+            document.getElementById("searchForm").reset();
+            document.getElementById("searchResultsList").innerHTML = "";
+            document.getElementById("searchResults").style.display = "none";
+        }
+
+        async function searchStudies(event) {
+            event.preventDefault();
+            const settings = JSON.parse(localStorage.getItem("settings"));
+            if (!settings || !settings.orthancUsername || !settings.orthancPassword) {
+                alert("Please configure Orthanc server settings first.");
+                toggleSettingsSection();
+                return;
+            }
+
+            const query = {
+                Level: "Study",
+                Query: {}
+            };
+
+            const patientName = document.getElementById("searchPatientName").value.trim();
+            const patientID = document.getElementById("searchPatientID").value.trim();
+            const studyDateFrom = document.getElementById("searchStudyDateFrom").value;
+            const studyDateTo = document.getElementById("searchStudyDateTo").value;
+            const modality = document.getElementById("searchModality").value;
+            const studyDescription = document.getElementById("searchStudyDescription").value.trim();
+            const accessionNumber = document.getElementById("searchAccessionNumber").value.trim();
+            const referringPhysician = document.getElementById("searchReferringPhysician").value.trim();
+            const studyStatus = document.getElementById("searchStudyStatus").value;
+            const labels = document.getElementById("searchLabels").value.trim();
+
+            if (patientName) query.Query["PatientName"] = patientName + "*";
+            if (patientID) query.Query["PatientID"] = patientID + "*";
+            if (studyDateFrom || studyDateTo) {
+                let dateRange = "";
+                if (studyDateFrom) dateRange += studyDateFrom.replace(/-/g, "");
+                dateRange += "-";
+                if (studyDateTo) dateRange += studyDateTo.replace(/-/g, "");
+                query.Query["StudyDate"] = dateRange;
+            }
+            if (modality) query.Query["ModalitiesInStudy"] = modality;
+            if (studyDescription) query.Query["StudyDescription"] = studyDescription + "*";
+            if (accessionNumber) query.Query["AccessionNumber"] = accessionNumber + "*";
+            if (referringPhysician) query.Query["ReferringPhysicianName"] = referringPhysician + "*";
+
+            try {
+                const response = await fetch(`/orthanc/tools/find`, {
+                    method: 'POST',
+                    headers: {
+                        "Accept": "application/json",
+                        "Authorization": "Basic " + btoa(`${settings.orthancUsername}:${settings.orthancPassword}`),
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(query)
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                const studyIds = await response.json();
+
+                const resultsList = document.getElementById("searchResultsList");
+                resultsList.innerHTML = "";
+                document.getElementById("searchResults").style.display = "block";
+
+                if (studyIds.length === 0) {
+                    resultsList.innerHTML = "<p>No studies found.</p>";
+                    return;
+                }
+
+                for (let studyId of studyIds) {
+                    const studyResponse = await fetch(`/orthanc/studies/${studyId}`, {
+                        headers: {
+                            "Accept": "application/json",
+                            "Authorization": "Basic " + btoa(`${settings.orthancUsername}:${settings.orthancPassword}`)
+                        }
+                    });
+                    if (!studyResponse.ok) continue;
+                    const study = await studyResponse.json();
+
+                    const patientName = study.PatientMainDicomTags?.PatientName || "Unknown Patient";
+                    const patientID = study.PatientMainDicomTags?.PatientID || "N/A";
+                    const studyDate = study.MainDicomTags.StudyDate || "Unknown";
+                    const isNew = studyDate && new Date(studyDate.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3')) >= new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+                    const studyItem = document.createElement("div");
+                    studyItem.className = `study-item ${isNew ? 'new' : ''}`;
+                    studyItem.innerHTML = `
+                        <input type="checkbox" class="study-checkbox" data-study-id="${studyId}" onchange="updateSelectedStudies('${studyId}', this.checked)">
+                        <div class="study-details">
+                            <span class="study-name"><i class="fas fa-user"></i> ${patientName}</span>
+                            <div class="study-meta">
+                                <span><strong>ID:</strong> ${patientID}</span>
+                                <span><strong>Study:</strong> ${study.MainDicomTags.StudyDescription || "Unnamed Study"}</span>
+                                <span><strong>Date:</strong> ${studyDate}</span>
+                            </div>
+                        </div>
+                    `;
+                    studyItem.onclick = (e) => {
+                        if (e.target.type !== 'checkbox') showStudyMetadata(studyId, settings);
+                    };
+                    resultsList.appendChild(studyItem);
+                }
+            } catch (error) {
+                console.error("Search studies error:", error);
+                alert("Failed to search studies. Check settings and connection.");
+            }
+        }
+
+        function updateSelectedStudies(studyId, checked) {
+            if (checked) {
+                selectedStudies.add(studyId);
+            } else {
+                selectedStudies.delete(studyId);
+            }
+        }
+
+        async function showStudyMetadata(studyId, settings) {
+            try {
+                const response = await fetch(`/orthanc/studies/${studyId}`, {
+                    headers: {
+                        "Accept": "application/json",
+                        "Authorization": "Basic " + btoa(`${settings.orthancUsername}:${settings.orthancPassword}`)
+                    }
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                const metadata = await response.json();
+
+                const modal = document.getElementById("studyMetadata");
+                modal.innerHTML = `
+                    <p><strong>Study Instance UID:</strong> ${metadata.ID}</p>
+                    <p><strong>Patient ID:</strong> ${metadata.PatientMainDicomTags?.PatientID || "N/A"}</p>
+                    <p><strong>Patient Name:</strong> ${metadata.PatientMainDicomTags?.PatientName || "N/A"}</p>
+                    <p><strong>Study Date:</strong> ${metadata.MainDicomTags.StudyDate || "N/A"}</p>
+                    <p><strong>Study Description:</strong> ${metadata.MainDicomTags.StudyDescription || "N/A"}</p>
+                    <p><strong>Modalities:</strong> ${metadata.MainDicomTags.ModalitiesInStudy || "N/A"}</p>
+                    <p><strong>Series Count:</strong> ${metadata.Stats.SeriesCount}</p>
+                    <p><strong>Instances Count:</strong> ${metadata.Stats.InstancesCount}</p>
+                    <p><strong>Labels:</strong> ${metadata.Labels ? metadata.Labels.join(", ") : "None"}</p>
+                `;
+                document.getElementById("metadataModal").classList.add("active");
+            } catch (error) {
+                console.error("Error fetching metadata:", error);
+                alert("Failed to fetch study metadata.");
+            }
+        }
+
+        function closeMetadataModal() {
+            document.getElementById("metadataModal").classList.remove("active");
+        }
+
+        async function fetchRecentStudies() {
+            const settings = JSON.parse(localStorage.getItem("settings"));
+            if (!settings || !settings.orthancUsername || !settings.orthancPassword) {
+                alert("Please configure Orthanc server settings first.");
+                toggleSettingsSection();
+                return;
+            }
+
+            try {
+                const response = await fetch(`/orthanc/studies?labels=NewStudy&expand`, {
+                    headers: {
+                        "Accept": "application/json",
+                        "Authorization": "Basic " + btoa(`${settings.orthancUsername}:${settings.orthancPassword}`)
+                    }
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                const studies = await response.json();
+
+                const list = document.getElementById("recentStudiesList");
+                list.innerHTML = "";
+                studies.forEach(study => {
+                    const patientName = study.PatientMainDicomTags?.PatientName || "Unknown Patient";
+                    const patientID = study.PatientMainDicomTags?.PatientID || "N/A";
+                    const studyDate = study.MainDicomTags.StudyDate || "Unknown";
+                    const isNew = studyDate && new Date(studyDate.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3')) >= new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+                    const studyItem = document.createElement("div");
+                    studyItem.className = `study-item ${isNew ? 'new' : ''}`;
+                    studyItem.innerHTML = `
+                        <input type="checkbox" class="study-checkbox" data-study-id="${study.ID}" onchange="updateSelectedStudies('${study.ID}', this.checked)">
+                        <div class="study-details">
+                            <span class="study-name"><i class="fas fa-user"></i> ${patientName}</span>
+                            <div class="study-meta">
+                                <span><strong>ID:</strong> ${patientID}</span>
+                                <span><strong>Study:</strong> ${study.MainDicomTags.StudyDescription || "Unnamed Study"}</span>
+                                <span><strong>Date:</strong> ${studyDate}</span>
+                            </div>
+                        </div>
+                    `;
+                    studyItem.onclick = (e) => {
+                        if (e.target.type !== 'checkbox') showStudyMetadata(study.ID, settings);
+                    };
+                    list.appendChild(studyItem);
+                });
+                updateRecentStudies(studies.length);
+            } catch (error) {
+                console.error("Fetch recent studies error:", error);
+                alert("Failed to fetch recent studies. Check settings and connection.");
+            }
+        }
+
+        function loadSettings() {
+            const settings = JSON.parse(localStorage.getItem("settings")) || {};
+            document.getElementById("orthancUrl").value = settings.orthancUrl || "http://localhost:8042";
+            document.getElementById("orthancUsername").value = settings.orthancUsername || "";
+            document.getElementById("orthancPassword").value = settings.orthancPassword || "";
+            document.getElementById("pacsAETitle").value = settings.pacsAETitle || "";
+            document.getElementById("pacsIP").value = settings.pacsIP || "";
+            document.getElementById("pacsPort").value = settings.pacsPort || "";
+            document.getElementById("pacsProtocol").value = settings.pacsProtocol || "C-MOVE";
+            document.getElementById("emailSmtpServer").value = settings.emailSmtpServer || "";
+            document.getElementById("emailSmtpPort").value = settings.emailSmtpPort || "";
+            document.getElementById("emailUsername").value = settings.emailUsername || "";
+            document.getElementById("emailPassword").value = settings.emailPassword || "";
+            document.getElementById("emailEncryption").value = settings.emailEncryption || "TLS";
+            document.getElementById("localSharePath").value = settings.localSharePath || "";
+            document.getElementById("localShareMethod").value = settings.localShareMethod || "file";
+            document.getElementById("enableEncryption").value = settings.enableEncryption || "false";
+            document.getElementById("orthancStatus").textContent = "";
+            document.getElementById("pacsStatus").textContent = "";
+            document.getElementById("emailStatus").textContent = "";
+            document.getElementById("sharingStatus").textContent = "";
+            document.getElementById("securityStatus").textContent = "";
+        }
+
+        document.getElementById("settingsForm").addEventListener("submit", function(e) {
+            e.preventDefault();
+            const settings = {
+                orthancUrl: document.getElementById("orthancUrl").value,
+                orthancUsername: document.getElementById("orthancUsername").value,
+                orthancPassword: document.getElementById("orthancPassword").value,
+                pacsAETitle: document.getElementById("pacsAETitle").value,
+                pacsIP: document.getElementById("pacsIP").value,
+                pacsPort: document.getElementById("pacsPort").value,
+                pacsProtocol: document.getElementById("pacsProtocol").value,
+                emailSmtpServer: document.getElementById("emailSmtpServer").value,
+                emailSmtpPort: document.getElementById("emailSmtpPort").value,
+                emailUsername: document.getElementById("emailUsername").value,
+                emailPassword: document.getElementById("emailPassword").value,
+                emailEncryption: document.getElementById("emailEncryption").value,
+                localSharePath: document.getElementById("localSharePath").value,
+                localShareMethod: document.getElementById("localShareMethod").value,
+                enableEncryption: document.getElementById("enableEncryption").value
+            };
+            localStorage.setItem("settings", JSON.stringify(settings));
+            alert("All settings saved successfully!");
+        });
+
+        async function testOrthancConnection() {
+            const username = document.getElementById("orthancUsername").value;
+            const password = document.getElementById("orthancPassword").value;
+            const statusDiv = document.getElementById("orthancStatus");
+
+            if (!username || !password) {
+                statusDiv.textContent = "Please provide all Orthanc settings.";
+                statusDiv.className = "connection-status connection-failure";
+                return;
+            }
+
+            statusDiv.textContent = "Testing Orthanc connection...";
+            statusDiv.className = "connection-status";
+
+            try {
+                const response = await fetch(`/orthanc/system`, {
+                    headers: {
+                        "Accept": "application/json",
+                        "Authorization": "Basic " + btoa(`${username}:${password}`)
+                    }
+                });
+                if (response.ok) {
+                    statusDiv.textContent = "Orthanc connection successful!";
+                    statusDiv.classList.add("connection-success");
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                statusDiv.textContent = `Orthanc connection failed: ${error.message}`;
+                statusDiv.classList.add("connection-failure");
+            }
+        }
+
+        async function testPacsConnection() {
+            const aetitle = document.getElementById("pacsAETitle").value;
+            const ip = document.getElementById("pacsIP").value;
+            const port = document.getElementById("pacsPort").value;
+            const statusDiv = document.getElementById("pacsStatus");
+
+            if (!aetitle || !ip || !port) {
+                statusDiv.textContent = "Please provide all PACS settings.";
+                statusDiv.className = "connection-status connection-failure";
+                return;
+            }
+
+            statusDiv.textContent = "Testing PACS connection...";
+            statusDiv.className = "connection-status";
+
+            try {
+                const response = await fetch(`http://${ip}:${port}/ping`, {
+                    method: 'GET',
+                    timeout: 5000
+                });
+                if (response.ok) {
+                    statusDiv.textContent = "PACS connection successful!";
+                    statusDiv.classList.add("connection-success");
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                statusDiv.textContent = `PACS connection failed: ${error.message}`;
+                statusDiv.classList.add("connection-failure");
+            }
+        }
+
+        async function testEmailConnection() {
+            const smtpServer = document.getElementById("emailSmtpServer").value;
+            const smtpPort = document.getElementById("emailSmtpPort").value;
+            const username = document.getElementById("emailUsername").value;
+            const password = document.getElementById("emailPassword").value;
+            const encryption = document.getElementById("emailEncryption").value;
+            const statusDiv = document.getElementById("emailStatus");
+
+            if (!smtpServer || !smtpPort || !username || !password) {
+                statusDiv.textContent = "Please provide all email settings.";
+                statusDiv.className = "connection-status connection-failure";
+                return;
+            }
+
+            statusDiv.textContent = "Testing email connection...";
+            statusDiv.className = "connection-status";
+
+            try {
+                const response = await fetch('/test-smtp', {
+                    method: 'POST',
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        smtpServer,
+                        smtpPort,
+                        username,
+                        password,
+                        encryption
+                    })
+                });
+                if (response.ok) {
+                    statusDiv.textContent = "Email connection successful!";
+                    statusDiv.classList.add("connection-success");
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                statusDiv.textContent = `Email connection failed: ${error.message}`;
+                statusDiv.classList.add("connection-failure");
+            }
+        }
+
+        async function testSharingConnection() {
+            const path = document.getElementById("localSharePath").value;
+            const statusDiv = document.getElementById("sharingStatus");
+
+            if (!path) {
+                statusDiv.textContent = "Please provide a local share directory.";
+                statusDiv.className = "connection-status connection-failure";
+                return;
+            }
+
+            statusDiv.textContent = "Testing sharing path...";
+            statusDiv.className = "connection-status";
+
+            try {
+                const response = await fetch('/test-path', {
+                    method: 'POST',
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ path })
+                });
+                if (response.ok) {
+                    statusDiv.textContent = "Sharing path valid!";
+                    statusDiv.classList.add("connection-success");
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                statusDiv.textContent = `Sharing path test failed: ${error.message}`;
+                statusDiv.classList.add("connection-failure");
+            }
+        }
+
+        document.getElementById("searchForm").addEventListener("submit", searchStudies);
+
+        // Initialize
+        updateMailCount();
+        updateRecentStudies(0);
+        updateAssignedStudies();
+        loadSettings();
+    </script>
+</body>
+</html>
